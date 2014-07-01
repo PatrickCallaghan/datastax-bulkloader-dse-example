@@ -5,9 +5,7 @@ This demo creates the sstable files and loads them through jmx to a dse cluster.
 
 ## Adding the dse-4.5.0 jar
 
-You will need to add the dse jar to your local maven repository before you start. To do this, do the <DSE_INSTALL_DIR>/lib/
-
-There you should see the dse-4.5.0.jar file. 
+You will need to add the dse jar to your local maven repository before you start. To do this, do the `DSE_INSTALL_DIR/lib/` directory. There you should see the dse-4.5.0.jar file. 
 
 Run the following
 
