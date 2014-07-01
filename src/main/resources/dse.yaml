@@ -1,0 +1,147 @@
+# The snitch to be delegated by the DseDelegateSnitch
+# Out of the box, Cassandra provides:
+#  - org.apache.cassandra.locator.SimpleSnitch
+#  - org.apache.cassandra.locator.PropertyFileSnitch
+#  - org.apache.cassandra.locator.GossipingPropertyFileSnitch
+#  - org.apache.cassandra.locator.RackInferringSnitch
+#  - org.apache.cassandra.locator.Ec2Snitch
+#  - org.apache.cassandra.locator.Ec2MultiRegionSnitch
+# Full descriptions found at cassandra.yaml:endpoint_snitch.
+# DataStax Enterprise provides:
+#  - com.datastax.bdp.snitch.DseSimpleSnitch:
+#    Proximity is determined by DSE workload, which places Cassandra,
+#    Analytics, and Solr nodes into their seperate datacenters.
+delegated_snitch: com.datastax.bdp.snitch.DseSimpleSnitch
+
+# Kerberos options
+#
+# The qop is the "Quality of Protection" for each connection.  Used by clients
+# and servers.  Below is a list of valid values and their meanings.
+#   auth - (default) authentication only
+#   auth-int - authentication plus integity protection of all transmitted data
+#   auth-conf - authetication plus integrity protection and encryption of all
+#              transmitted data
+# Warning: Encryption using auth-conf is separate and completely independent
+# of whether encryption is done using SSL.  So that if auth-conf is selected
+# here and SSL is enabled, then the transmitted data will be encrypted twice.
+kerberos_options:
+    keytab: resources/dse/conf/dse.keytab
+    service_principal: dse/_HOST@REALM
+    http_principal: HTTP/_HOST@REALM
+    qop: auth
+
+# To ensure that data with a TTL is purged from Solr indexes when it expires,
+# DSE periodically checks indexes for data that has exceeded its TTL. These settings 
+# control the scheduling & execution of those checks.
+ttl_index_rebuild_options:
+    # by default, schedule a check every 300 seconds
+    fixed_rate_period: 300
+    # the first check is delayed to speed up startup time
+    initial_delay: 20
+    # documents subject to TTL are checked in batches: this configures the max number of docs
+    # checked per batch 
+    max_docs_per_batch: 200
+
+# Solr shard transport options, for inter-node communication between Solr nodes.
+shard_transport_options:
+#  
+# Default type from 4.5.0 onwards is "netty" for TCP-based communication, 
+# providing lower latency, improved throughput and reduced resource consumption.
+# The other type is "http" for plain old Solr communication via the standard 
+# HTTP-based interface.
+    type: netty
+#
+# Options specific to the "netty" transport type.
+#
+# The TCP listen port, mandatory if you either want to use the "netty" transport
+# type, or want to later migrate to it from the "http" one. If you plan to use
+# and stay with the "http" one, either comment it out or set it to -1.
+    netty_server_port: 8984
+# The number of server acceptor threads (default is number of available processors). 
+#   netty_server_acceptor_threads: 
+# The number of server worker threads (default is number of available processors * 8). 
+#   netty_server_worker_threads: 
+# The number of client worker threads (default is number of available processors * 8). 
+#   netty_client_worker_threads: 
+# The max number of client connections (default is 100). 
+#   netty_client_max_connections: 
+# The client request timeout, in milliseconds (default is 60000). 
+#   netty_client_request_timeout:
+#
+# Options specific to the "http" transport type.
+#
+# HTTP shard client timeouts in milliseconds. 
+# Default is the same as Solr, that is 0, meaning no timeout at all; it is
+# strongly suggested to change it to a finite value, to avoid blocking operations.
+# Notice these settings are valid across Solr cores.
+#   http_shard_client_conn_timeout: 0
+#   http_shard_client_socket_timeout: 0
+    
+# Solr indexing settings
+#
+# Max number of concurrent asynchronous indexing threads per Solr core.
+# Default is "number of available processors" * 2; if set at 1,
+# the system reverts to the synchronous behavior, where data is
+# synchronously written into Cassandra and indexed by Solr.
+#
+# max_solr_concurrency_per_core: 2
+#
+# The back pressure threshold is the total number of queued asynchronous
+# indexing requests per core, computed at Solr commit time; 
+# when exceeded, back pressure kicks in to avoid excessive 
+# resources consumption, causing throttling of new incoming requests.
+# Default is 500.
+#
+# back_pressure_threshold_per_core: 500
+#
+# The max time to wait for flushing of async index updates, happening either
+# at Solr commit time or Cassandra flush time.
+# Flushing should always complete successfully, in order to fully sync Solr indexes
+# with Cassandra data, so should always be set at a reasonable high value, 
+# expressed in minutes.
+# Default is 5.
+#
+# flush_max_time_per_core: 5
+
+# CQL performance objects features:
+# * CQL Slow Log
+# * CQL System Info
+# * User Level Latency Tracking
+# * Resource Level Latency Tracking
+# * Database Summary Statistics
+
+# CQL slow log settings
+#cql_slow_log_threshold_ms: 100
+#cql_slow_log_ttl: 86400
+
+# CQL system info tables settings
+cql_system_info_options:
+    enabled: false
+    refresh_rate_ms: 10000
+
+# Data Resource latency tracking settings
+resource_level_latency_tracking_options:
+    enabled: false
+    refresh_rate_ms: 10000
+
+# Database summary stats options
+db_summary_stats_options:
+    enabled: false
+    refresh_rate_ms: 10000
+
+# Cluster summary stats options
+cluster_summary_stats_options:
+    enabled: false
+    refresh_rate_ms: 10000
+  
+# Column Family Histogram data tables options
+histogram_data_options:
+  enabled: false
+  refresh_rate_ms: 10000
+  retention_count: 3
+
+# User/Resource latency tracking settings
+user_level_latency_tracking_options:
+   enabled: false
+   refresh_rate_ms: 10000
+   top_stats_limit: 100
