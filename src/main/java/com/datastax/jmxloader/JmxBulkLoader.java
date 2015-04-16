@@ -59,7 +59,7 @@ public class JmxBulkLoader {
 	public static void main(String[] args) throws Exception {
 
 		JmxBulkLoader np = new JmxBulkLoader("localhost", 7199);
-		File currentDir = new File(".", "/datastax_bulkload_demo/transactions");
+		File currentDir = new File(".", "/datastax_bulkload_demo/datastax_bulkload_demo.transactions");
 		
 		np.bulkLoad(currentDir.getAbsolutePath());		
 		

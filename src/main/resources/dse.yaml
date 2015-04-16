@@ -1,17 +1,5 @@
-# The snitch to be delegated by the DseDelegateSnitch
-# Out of the box, Cassandra provides:
-#  - org.apache.cassandra.locator.SimpleSnitch
-#  - org.apache.cassandra.locator.PropertyFileSnitch
-#  - org.apache.cassandra.locator.GossipingPropertyFileSnitch
-#  - org.apache.cassandra.locator.RackInferringSnitch
-#  - org.apache.cassandra.locator.Ec2Snitch
-#  - org.apache.cassandra.locator.Ec2MultiRegionSnitch
-# Full descriptions found at cassandra.yaml:endpoint_snitch.
-# DataStax Enterprise provides:
-#  - com.datastax.bdp.snitch.DseSimpleSnitch:
-#    Proximity is determined by DSE workload, which places Cassandra,
-#    Analytics, and Solr nodes into their seperate datacenters.
-delegated_snitch: com.datastax.bdp.snitch.DseSimpleSnitch
+# Enable the Hive Meta Store via Cassandra
+hive_meta_store_enabled: true
 
 # Kerberos options
 #
@@ -29,6 +17,39 @@ kerberos_options:
     service_principal: dse/_HOST@REALM
     http_principal: HTTP/_HOST@REALM
     qop: auth
+
+# LDAP options
+#
+# These are options will be used if the com.datastax.bdp.cassandra.auth.LdapAuthenticator
+# is configured as the authenticator in cassandra.yaml
+#
+# ldap_options:
+    # server_host: localhost
+    # server_port: 389
+    # DN of the user that be used to search for users on the LDAP server. This user should
+    # only have the necessary permissions to do the search
+    # If not present then an anonymous bind will be used for the search
+    # search_dn: cn=Admin
+    # Password of the search user
+    # search_password: secret
+    # Set to true to use an SSL encrypted connection. In this case the server_port needs
+    # to be set to the ldaps port for the server
+    # use_ssl: false
+    # Set to true to initiate a TLS encrypted connection on the default ldap port
+    # use_tls: false
+    # truststore_path:
+    # truststore_password:
+    # truststore_type: jks
+    # user_search_base: ou=users,dc=example,dc=com
+    # user_search_filter: (uid={0})
+    # Validity period for the credentials cache in milli-seconds (remote bind is an expensive
+    # operation). Defaults to 0, set to 0 to disable.
+    # credentials_validity_in_ms: 0
+    # Validity period for the search cache in seconds. Defaults to 0, set to 0 to disable.
+    # search_validity_in_seconds: 0
+    # connection_pool:
+        # max_active: 8
+        # max_idle: 8
 
 # To ensure that data with a TTL is purged from Solr indexes when it expires,
 # DSE periodically checks indexes for data that has exceeded its TTL. These settings 
@@ -102,6 +123,30 @@ shard_transport_options:
 # Default is 5.
 #
 # flush_max_time_per_core: 5
+#
+# The max time to wait for each Solr core to load upon startup or create/reload operations, expressed in minutes.
+# This is an advanced option, which should be changed only if any exceptions happen during core loading.
+# Default is 1.
+# load_max_time_per_core: 1
+
+# Applies the configured Cassandra disk failure policy to index write failures.
+# Default is disabled (false).
+#
+# enable_index_disk_failure_policy: false
+
+# Solr cql query options
+#
+# Max number of threads to use for retrieving rows during CQL Solr queries.
+# This value is cross-request and cross-core.
+# Default is "number of available processors" * 10.
+#
+# cql_solr_query_executor_threads: 2
+#
+# Max time in milliseconds to wait for each row to be read from Cassandra during
+# CQL Solr queries.
+# Default is 10000 (10 seconds).
+#
+# cql_solr_query_row_timeout: 10000
 
 # CQL performance objects features:
 # * CQL Slow Log
@@ -111,8 +156,11 @@ shard_transport_options:
 # * Database Summary Statistics
 
 # CQL slow log settings
-#cql_slow_log_threshold_ms: 100
-#cql_slow_log_ttl: 86400
+cql_slow_log_options:
+    enabled: false
+    threshold_ms: 100
+    ttl_seconds: 86400
+    async_writers: 1
 
 # CQL system info tables settings
 cql_system_info_options:
@@ -145,3 +193,183 @@ user_level_latency_tracking_options:
    enabled: false
    refresh_rate_ms: 10000
    top_stats_limit: 100
+   quantiles: false
+
+# Solr Performance Objects
+
+# Solr indexing error log options
+solr_indexing_error_log_options:
+    enabled: false
+    ttl_seconds: 604800
+    async_writers: 1
+   
+# Solr slow query log options
+solr_slow_sub_query_log_options:
+    enabled: false
+    ttl_seconds: 604800
+    async_writers: 1
+    threshold_ms: 100
+
+# Solr UpdateHandler metrics options
+solr_update_handler_metrics_options:
+    enabled: false
+    ttl_seconds: 604800
+    refresh_rate_ms: 60000
+
+# Solr request handler metrics options
+solr_request_handler_metrics_options:
+    enabled: false
+    ttl_seconds: 604800
+    refresh_rate_ms: 60000
+
+# Solr index statistics options
+solr_index_stats_options:
+    enabled: false
+    ttl_seconds: 604800
+    refresh_rate_ms: 60000
+
+# Solr cache statistics options
+solr_cache_stats_options:
+    enabled: false
+    ttl_seconds: 604800
+    refresh_rate_ms: 60000
+    
+# Solr latency snapshot options
+solr_latency_snapshot_options:
+    enabled: false
+    ttl_seconds: 604800
+    refresh_rate_ms: 60000
+
+# The directory where system keys are kept
+#
+# Keys used for sstable encryption must be distributed to all nodes
+# Dse will need to be able to read and write to the directory.
+#
+# This directory should have 700 permissions and belong to the dse user
+system_key_directory: /etc/dse/conf
+
+# If this is set to true, DSE will expect the following config values to be encrypted:
+#   resources/cassandra/conf/cassandra.yaml:
+#     server_encryption_options.keystore_password
+#     server_encryption_options.truststore_password
+#     client_encryption_options.keystore_password
+#     client_encryption_options.truststore_password
+#   resources/dse/conf/dse.yaml:
+#     ldap_options.search_password
+#     ldap_options.truststore_password
+#
+# it's an error if the passwords aren't encrypted
+#
+# config values can be encrypted with dsetool encryptconfigvalue
+config_encryption_active: false
+
+# the name of the system key used to encrypt / decrypt passwords stored
+# in configuration files.
+#
+# If config_encryption_active is true, it's an error if a valid key with
+# this name isn't in the system key directory
+#
+# keyfiles can be created with dsetool createsystemkey
+config_encryption_key_name: system_key
+
+# The fraction of available system resources to be used by Spark Worker
+#
+# This the only initial value, once it is reconfigured, the new value is stored
+# and retrieved on next run.
+initial_spark_worker_resources: 0.7
+
+# Audit logging options
+audit_logging_options:
+  enabled: false
+  # The logger used for logging audit information
+  # Available loggers are:
+  #   CassandraAuditWriter: logs audit info to a cassandra table. This logger can be run either synchronously, or
+  #                         asynchronously. Audit logs are stored in the dse_audit.audit_log table.
+  #                         When run synchronously, a query will not execute until it has been written
+  #                         to the audit log table successfully. If there is a failure between when an audit event is
+  #                         written, and it's query is executed, the audit logs may contain queries that were never
+  #                         executed.
+  #   Log4JAuditWriter:     logs audit info to a log4j logger. The logger name is `DataAudit`, and can be configured
+  #                         in the log4j-server.properties file.
+  logger: Log4JAuditWriter
+
+  # Comma separated list of audit event categories to be included or excluded from the audit log.
+  # Categories are: QUERY, DML, DDL, DCL, AUTH, ADMIN
+  # Specify either included or excluded categories. Specifying both is an error
+  # included_categories:
+  # excluded_categories:
+
+  # Comma separated list of keyspaces to be included or excluded from the audit log.
+  # Specify either included or excluded keyspaces. Specifying both is an error
+  # included_keyspaces:
+  # excluded_keyspaces:
+
+  # The amount of time, in hours, audit events are retained by supporting loggers
+  # Currently, only the CassandraAuditWriter supports retention time
+  # values of 0 or less retain events forever
+  retention_time: 0
+
+  cassandra_audit_writer_options:
+    # sets the mode the writer runs in.
+    #
+    # When run synchonously, a query is not executed until the audit event is successfully written.
+    #
+    # When run asynchronously, audit events are queued for writing to the audit table, but are
+    # not neccesarily logged before the query executes. A pool of writer threads consumes the
+    # audit events from the queue, and writes them to the audit table in batch queries. While
+    # this substantially improves performance under load, if there is a failure between when
+    # a query is executed, and it's audit event is written to the table, the audit table may
+    # be missing entries for queries that were executed.
+    # valid options are 'sync' and 'async'
+    mode: sync
+
+    # The maxium number of events the writer will dequeue before writing them out to the table. If you're seeing
+    # warnings in your logs about batches being too large, decrease this value. Increasing batch_size_warn_threshold_in_kb
+    # in cassandra.yaml is also an option, but make sure you understand the implications before doing so.
+    #
+    # Only used in async mode. Must be >0
+    batch_size: 50
+
+    # The maximum amount of time in milliseconds an event will be dequeued by a writer before being written out. This
+    # prevents events from waiting too long before being written to the table when there's not a lot of queries happening.
+    #
+    # Only used in async mode. Must be >0
+    flush_time: 500
+
+    # The number of worker threads asynchronously logging events to the CassandraAuditWriter.
+    #
+    # Only used in async mode. Must be >0
+    num_writers: 10
+
+    # The size of the queue feeding the asynchronous audit log writer threads. When there are more events being
+    # produced than the writers can write out, the queue will fill up, and newer queries will block until there
+    # is space on the queue.
+    # If a value of 0 is used, the queue size will be unbounded, which can lead to resource exhaustion under
+    # heavy query load.
+    queue_size: 10000
+
+    # the consistency level used to write audit events
+    write_consistency: QUORUM
+
+# if enabled, system tables that may contain sensitive information (system.hints,
+# system.batchlog, system.paxos) are encrypted with the encryption settings below.
+# When enabling system table encryption on a node with existing data, run
+# `nodetool upgradesstables -a` on the listed tables to encrypt existing data
+#
+# When tracing is enabled, sensitive info will be written into the tables in the
+# system_traces keyspace. Those tables should be configured to encrypt their data
+# on disk by using an encrypting compressor.
+system_info_encryption:
+  enabled: false
+  cipher_algorithm: AES
+  secret_key_strength: 128
+  chunk_length_kb: 64
+  # the name of the keys file that will be created to encrypt system tables.
+  # This file will be created at <system_key_directory>/system/<key_name>
+  key_name: system_table_keytab
+
+# Retries setting when hive inserts data to C* table. insert_max_retries is max number of retries
+# insert_retry_sleep_period is the period of time in milliseconds between retries
+hive_options:
+  insert_max_retries: 6
+  insert_retry_sleep_period: 50
